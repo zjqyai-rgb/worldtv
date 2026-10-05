@@ -1,17 +1,8 @@
-// Ai.Alvin_daily logo, cropped from the original artwork.
-// The full wordmark is shown on wider screens; phones get the compact "Ai" mark.
-export default function BrandMark({ height = 36 }: { height?: number }) {
+// Ai.Alvin_daily logo, cropped from the original artwork. Height is set in CSS (--logo-h) per screen size.
+export default function BrandMark() {
   return (
-    <span className="ai-badge" style={{ height }}>
-      <picture>
-        <source media="(max-width: 820px)" srcSet="/brand/ai-mark.png" width={Math.round((height * 177) / 128)} height={height} />
-        <img
-          src="/brand/ai-alvin-daily.png"
-          alt="Ai.Alvin_daily"
-          height={height}
-          width={Math.round((height * 861) / 151)}
-        />
-      </picture>
+    <span className="ai-badge">
+      <img src="/brand/ai-alvin-daily.png" alt="Ai.Alvin_daily" width={861} height={151} />
     </span>
   );
 }

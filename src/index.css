@@ -89,8 +89,7 @@ kbd {
   padding: 14px 18px; pointer-events: none;
 }
 .topbar > * { pointer-events: auto; }
-.ai-badge img { display: block; }
-.ai-badge picture { display: block; }
+.ai-badge img { display: block; height: var(--logo-h, 36px); width: auto; }
 .brand .brand-text { padding-left: 2px; }
 @media (max-width: 1000px) and (min-width: 821px) { .brand-text { display: none; } }
 .brand { display: flex; align-items: center; gap: 10px; justify-self: start; }
@@ -409,11 +408,14 @@ kbd {
   .mode-switch { justify-self: center; }
   .mode-switch button { padding: 8px 12px; font-size: 13px; }
   .mode-switch { grid-template-columns: repeat(3, auto); }
-  .mode-switch button:not(.active) span { display: none; }
+  .mode-switch button span { display: none; }
+  .mode-switch button { padding: 8px 11px; }
+  .brand { --logo-h: 24px; }
+  .ai-badge { border-radius: 7px; }
   .mode-glider { display: none; }
   .mode-switch button.active { background: var(--accent); box-shadow: 0 0 18px rgba(167, 139, 250, 0.45); }
   .top-actions { gap: 6px; }
-  .top-actions .icon.round, .search-btn { width: 38px; height: 38px; }
+  .top-actions .icon.round, .search-btn { width: 36px; height: 36px; }
   .top-actions .icon.round[title='About'] { display: none; }
   .hide-mobile { display: none !important; }
 
@@ -442,4 +444,12 @@ kbd {
   .radio-art .logo { width: 44px !important; height: 44px !important; }
   .play-btn { width: 44px; height: 44px; }
   .keys { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 360px) {
+  .brand { --logo-h: 19px; }
+  .topbar { padding-left: 10px; padding-right: 10px; gap: 6px; }
+  .mode-switch button { padding: 7px 8px; }
+  .top-actions { gap: 4px; }
+  .top-actions .icon.round, .search-btn { width: 32px; height: 32px; }
 }
