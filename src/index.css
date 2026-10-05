@@ -90,6 +90,9 @@ kbd {
 }
 .topbar > * { pointer-events: auto; }
 .ai-badge img { display: block; }
+.ai-badge picture { display: block; }
+.brand .brand-text { padding-left: 2px; }
+@media (max-width: 1000px) and (min-width: 821px) { .brand-text { display: none; } }
 .brand { display: flex; align-items: center; gap: 10px; justify-self: start; }
 .ai-badge {
   display: inline-grid; place-items: center; border-radius: 10px; flex-shrink: 0; overflow: hidden;
