@@ -55,7 +55,7 @@ kbd {
 }
 
 /* ---------- globe ---------- */
-.app { position: fixed; inset: 0; background: #02030a url('/textures/night-sky.png') center / cover; }
+.app { position: fixed; inset: 0; background: #02030a url('/textures/night-sky.webp') center / cover; }
 .globe-wrap { position: absolute; top: 0; bottom: 0; right: 0; left: 408px; }
 @media (max-width: 1180px) { .globe-wrap { left: 366px; } }
 @media (max-width: 820px) { .globe-wrap { left: 0; } }

@@ -98,10 +98,11 @@ export default function WorldGlobe() {
     const scene = g.scene();
     const globeRadius = g.getGlobeRadius();
     let clouds: THREE.Mesh | null = null;
-    new THREE.TextureLoader().load('/textures/clouds.png', (tex) => {
+    // Clouds ship as a small greyscale mask (white clouds, alpha from the mask) instead of a 5 MB PNG.
+    new THREE.TextureLoader().load('/textures/clouds-alpha.jpg', (tex) => {
       clouds = new THREE.Mesh(
         new THREE.SphereGeometry(globeRadius * 1.006, 75, 75),
-        new THREE.MeshPhongMaterial({ map: tex, transparent: true, opacity: 0.28, depthWrite: false }),
+        new THREE.MeshPhongMaterial({ color: 0xffffff, alphaMap: tex, transparent: true, opacity: 0.28, depthWrite: false }),
       );
       scene.add(clouds);
     });
@@ -173,8 +174,8 @@ export default function WorldGlobe() {
         width={size.w}
         height={size.h}
         backgroundColor="rgba(0,0,0,0)"
-        globeImageUrl="/textures/earth-night.jpg"
-        bumpImageUrl="/textures/earth-topology.png"
+        globeImageUrl="/textures/earth-night.webp"
+        bumpImageUrl="/textures/earth-topology.webp"
         globeMaterial={material}
         showAtmosphere
         atmosphereColor="#5eb8ff"
