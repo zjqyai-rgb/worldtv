@@ -11,6 +11,26 @@ export const ORIGIN = 'https://worldtv.vercel.app';
 export const UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36';
 
+// Slower networks (e.g. CI runners) can stretch every timeout: TIMEOUT_SCALE=2 doubles them.
+export const TIMEOUT_SCALE = Number(process.env.TIMEOUT_SCALE || 1);
+
+// Why streams were rejected, so a run can be diagnosed from its log.
+export const failures = new Map();
+export function fail(reason) {
+  failures.set(reason, (failures.get(reason) || 0) + 1);
+  return false;
+}
+export function failFromError(prefix, e) {
+  const code = e?.name === 'AbortError' ? 'timeout' : e?.cause?.code || e?.code || e?.name || 'error';
+  return fail(`${prefix}:${code}`);
+}
+export function printFailures() {
+  const rows = [...failures.entries()].sort((a, b) => b[1] - a[1]);
+  console.log('Rejection reasons:');
+  for (const [r, n] of rows) console.log(`  ${String(n).padStart(6)}  ${r}`);
+  failures.clear();
+}
+
 export async function writeJson(name, data) {
   await fs.mkdir(OUT_DIR, { recursive: true });
   const file = path.join(OUT_DIR, name);

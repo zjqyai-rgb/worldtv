@@ -1,7 +1,7 @@
 // Builds public/data/tv.json from the iptv-org database, keeping ONLY streams that
 // a browser can actually play: HTTPS end-to-end, CORS-enabled at every hop
 // (master playlist -> variant playlist -> first media segment), no custom headers.
-import { fetchJson, fetchWithTimeout, pool, corsOk, writeJson, ORIGIN, UA } from './lib.mjs';
+import { fetchJson, fetchWithTimeout, pool, corsOk, writeJson, ORIGIN, UA, TIMEOUT_SCALE, fail, failFromError, printFailures } from './lib.mjs';
 
 const API = 'https://iptv-org.github.io/api';
 const CONCURRENCY = Number(process.env.CONCURRENCY || 96);
@@ -13,7 +13,7 @@ async function getText(url, extraHeaders = {}) {
   const res = await fetchWithTimeout(
     url,
     { headers: { 'User-Agent': UA, Origin: ORIGIN, ...extraHeaders } },
-    9000,
+    9000 * TIMEOUT_SCALE,
   );
   return res;
 }
@@ -28,11 +28,12 @@ function firstUri(playlist) {
 
 /** Returns true when the HLS stream is playable from a browser on another origin. */
 export async function checkHls(url) {
-  if (!url.startsWith('https://')) return false;
+  if (!url.startsWith('https://')) return fail('hls:not-https');
   let res = await getText(url);
-  if (!res.ok || !corsOk(res)) return false;
+  if (!res.ok) return fail(`hls:playlist-http-${res.status}`);
+  if (!corsOk(res)) return fail('hls:playlist-no-cors');
   let body = await res.text();
-  if (!body.includes('#EXTM3U')) return false;
+  if (!body.includes('#EXTM3U')) return fail('hls:not-a-playlist');
   let base = res.url || url;
 
   // Master playlist: follow the first variant.
@@ -40,24 +41,26 @@ export async function checkHls(url) {
     const lines = body.split('\n');
     const idx = lines.findIndex((l) => l.startsWith('#EXT-X-STREAM-INF'));
     const variant = lines.slice(idx + 1).find((l) => l.trim() && !l.startsWith('#'));
-    if (!variant) return false;
+    if (!variant) return fail('hls:empty-master');
     const vUrl = new URL(variant.trim(), base).href;
-    if (!vUrl.startsWith('https://')) return false;
+    if (!vUrl.startsWith('https://')) return fail('hls:variant-not-https');
     res = await getText(vUrl);
-    if (!res.ok || !corsOk(res)) return false;
+    if (!res.ok) return fail(`hls:variant-http-${res.status}`);
+    if (!corsOk(res)) return fail('hls:variant-no-cors');
     body = await res.text();
-    if (!body.includes('#EXTM3U')) return false;
+    if (!body.includes('#EXTM3U')) return fail('hls:variant-not-a-playlist');
     base = res.url || vUrl;
   }
 
   // Media playlist: must contain segments, and the first segment must be fetchable.
-  if (!body.includes('#EXTINF')) return false;
+  if (!body.includes('#EXTINF')) return fail('hls:no-segments');
   const seg = firstUri(body);
-  if (!seg) return false;
+  if (!seg) return fail('hls:no-segments');
   const sUrl = new URL(seg, base).href;
-  if (!sUrl.startsWith('https://')) return false;
+  if (!sUrl.startsWith('https://')) return fail('hls:segment-not-https');
   res = await getText(sUrl, { Range: 'bytes=0-2047' });
-  if (!(res.ok || res.status === 206) || !corsOk(res)) return false;
+  if (!(res.ok || res.status === 206)) return fail(`hls:segment-http-${res.status}`);
+  if (!corsOk(res)) return fail('hls:segment-no-cors');
   // Drain a little and close.
   try {
     await res.body?.cancel();
@@ -93,7 +96,8 @@ async function main() {
   const toCheck = LIMIT ? candidates.slice(0, LIMIT) : candidates;
   console.log(`Checking ${toCheck.length} candidate streams (of ${streams.length})…`);
 
-  const ok = await pool(toCheck, CONCURRENCY, (s) => checkHls(s.url), 'tv streams');
+  const ok = await pool(toCheck, CONCURRENCY, (s) => checkHls(s.url).catch((e) => failFromError('hls', e)), 'tv streams');
+  printFailures();
   const working = toCheck.filter((_, i) => ok[i]);
   console.log(`${working.length} streams verified working.`);
 

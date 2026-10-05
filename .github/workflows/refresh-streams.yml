@@ -1,4 +1,4 @@
-# Re-verifies every TV / radio / webcam stream daily and commits the refreshed lists.
+# Re-verifies every TV / radio / webcam stream and commits the refreshed lists.
 # Vercel redeploys automatically when the commit lands, so dead links drop off within a day.
 name: Refresh streams
 
@@ -6,6 +6,17 @@ on:
   schedule:
     - cron: '17 */12 * * *' # twice a day
   workflow_dispatch:
+    inputs:
+      concurrency:
+        description: 'Streams tested at the same time'
+        default: '24'
+      timeout_scale:
+        description: 'Timeout multiplier (2 = twice as patient)'
+        default: '2'
+      publish:
+        description: 'Commit the results (untick for a test run)'
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -13,7 +24,11 @@ permissions:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
+    env:
+      # Scheduled runs have no inputs, so fall back to the same gentle defaults.
+      CONCURRENCY: ${{ inputs.concurrency || '24' }}
+      TIMEOUT_SCALE: ${{ inputs.timeout_scale || '2' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -31,6 +46,7 @@ jobs:
             if (tv < 1500 || radio < 2000 || cams < 100) process.exit(1);
           "
       - name: Commit
+        if: ${{ github.event_name == 'schedule' || inputs.publish }}
         run: |
           git config user.name 'worldtv-bot'
           git config user.email 'worldtv-bot@users.noreply.github.com'

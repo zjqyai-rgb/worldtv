@@ -1,6 +1,6 @@
 // Builds public/data/radio.json from radio-browser.info, keeping only HTTPS stations
 // whose stream actually answers with audio right now.
-import { fetchJson, fetchWithTimeout, pool, writeJson, UA } from './lib.mjs';
+import { fetchJson, fetchWithTimeout, pool, writeJson, UA, TIMEOUT_SCALE, fail, failFromError, printFailures } from './lib.mjs';
 import { checkHls } from './build-tv.mjs';
 
 const PER_COUNTRY = Number(process.env.PER_COUNTRY || 150);
@@ -31,9 +31,9 @@ function genresFor(tagString) {
 }
 
 async function checkAudio(url, isHls) {
-  if (!url.startsWith('https://')) return false;
+  if (!url.startsWith('https://')) return fail('audio:not-https');
   if (isHls || /\.m3u8(\?|$)/i.test(url)) return checkHls(url);
-  const res = await fetchWithTimeout(url, { headers: { 'User-Agent': UA, 'Icy-MetaData': '0' } }, 8000);
+  const res = await fetchWithTimeout(url, { headers: { 'User-Agent': UA, 'Icy-MetaData': '0' } }, 8000 * TIMEOUT_SCALE);
   const type = (res.headers.get('content-type') || '').toLowerCase();
   const ok = res.ok && /audio|ogg|aac|mpeg|octet-stream/.test(type) && !type.includes('mpegurl');
   if (ok) {
@@ -41,13 +41,13 @@ async function checkAudio(url, isHls) {
     const reader = res.body.getReader();
     const { value } = await Promise.race([
       reader.read(),
-      new Promise((r) => setTimeout(() => r({ value: null }), 5000)),
+      new Promise((r) => setTimeout(() => r({ value: null }), 5000 * TIMEOUT_SCALE)),
     ]);
     reader.cancel().catch(() => {});
-    return !!value?.length;
+    return value?.length ? true : fail('audio:no-bytes');
   }
   res.body?.cancel().catch(() => {});
-  return false;
+  return fail(res.ok ? `audio:wrong-type(${type.split(';')[0] || 'none'})` : `audio:http-${res.status}`);
 }
 
 async function main() {
@@ -73,7 +73,8 @@ async function main() {
   }
   const candidates = [...perCountry.values()].flat();
   console.log(`Checking ${candidates.length} stations…`);
-  const ok = await pool(candidates, CONCURRENCY, (s) => checkAudio(s.url_resolved, s.hls === 1), 'radio');
+  const ok = await pool(candidates, CONCURRENCY, (s) => checkAudio(s.url_resolved, s.hls === 1).catch((e) => failFromError('audio', e)), 'radio');
+  printFailures();
   const working = candidates.filter((_, i) => ok[i]);
 
   const out = working.map((s) => ({
