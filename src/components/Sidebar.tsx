@@ -15,6 +15,7 @@ import { keyOf, useChannels, useStore } from '../store';
 import { countBy, localTime, MODE_LABEL, useNow } from '../lib';
 import ChannelLogo from './ChannelLogo';
 import { categoryIcon } from './categoryIcons';
+import VisitorCounter from './VisitorCounter';
 import type { Channel, ChannelRef, Mode } from '../types';
 
 export default function Sidebar() {
@@ -51,6 +52,9 @@ export default function Sidebar() {
         <TabBtn active={tab === 'recent'} onClick={() => setTab('recent')} icon={<Clock size={15} />} label="Recent" />
       </nav>
       <div className="sidebar-body">{body}</div>
+      <footer className="sidebar-foot">
+        <VisitorCounter />
+      </footer>
     </aside>
   );
 }

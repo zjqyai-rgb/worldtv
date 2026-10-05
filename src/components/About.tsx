@@ -1,10 +1,12 @@
 import { ShieldCheck, X } from 'lucide-react';
 import { useStore } from '../store';
+import { useVisitors } from './VisitorCounter';
 
 export default function About() {
   const open = useStore((s) => s.aboutOpen);
   const setOpen = useStore((s) => s.setAboutOpen);
   const datasets = useStore((s) => s.datasets);
+  const visitors = useVisitors();
   if (!open) return null;
   const updated = datasets.tv?.updated || datasets.radio?.updated || datasets.webcam?.updated;
   const stat = (n?: number) => (n ? n.toLocaleString() : '—');
@@ -36,6 +38,11 @@ export default function About() {
             <small>Live webcams</small>
           </div>
         </div>
+        {visitors !== null && (
+          <p className="about-visitors">
+            🌍 <b>{visitors.toLocaleString()}</b> people have visited WorldTV so far
+          </p>
+        )}
         <div className="verified">
           <ShieldCheck size={18} />
           <span>
